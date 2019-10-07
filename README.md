@@ -1,6 +1,6 @@
 # Program Analysis Examples
-## CIS 700 (Fall '19) by Kris Micinski at Syracuse U
-## Notes for "Program Analysis: Foundations and Applications"
+**CIS 700 (Fall '19) by Kris Micinski at Syracuse U**
+**Notes for "Program Analysis: Foundations and Applications"**
 
 This repository contains a broad array of abstract machines and
 abstract interpreters, along with conversion routines (e.g., ANF/CPS
