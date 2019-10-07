@@ -1,5 +1,7 @@
 #lang racket
 
+(provide (all-defined-out))
+
 (define (fact n)
   (if (= 0 n)
       1
@@ -15,7 +17,7 @@
                             (k n*v))))))))
 
 (define (fib n)
-  (if (<= n 1)
+  '(if (<= n 1)
       n
       (+ (fib (- n 1)) (fib (- n 2)))))
 
@@ -30,11 +32,31 @@
                                           (let ([sum (+ v0 v1)])
                                             (k sum)))))))))))
 
+
+(define (anf-convert e)
+  (define (normalize-ae e k)
+    ...)
+  (define (normalize-aes es k)
+    ...)
+  (define (normalize e k)
+    (match e
+      [(? number? n) (k n)]
+      [(? symbol? x) (k x)]
+      [`(lambda (,x) ,e0) (k `(lambda (,x) ,(anf-convert e0)))]
+      [`(if ,e0 ,e1 ,e2)
+       (normalize-ae e0
+                     (lambda (ae)
+                       (k `(if ,ae ,(anf-convert e1) ,(anf-convert e2)))))]
+      [`(,es ...)
+       (normalize-aes es k)]))
+  (normalize e (lambda (x) x)))
+
 ; Flanagan, et al, 1993 (Essence of compiling with continuations)
 (define (anf-convert e)
   (define (normalize-ae e k)
     (normalize e (lambda (anf)
                    (match anf
+                     [(? number? n) (k n)]
                      [(? symbol? x)
                       (k x)]
                      [`(lambda ,xs ,e0)
@@ -52,17 +74,12 @@
                                                   (k `(,ae ,@aes))))))))
   (define (normalize e k)
     (match e
-      [(? symbol? x)
-       (k x)]
-      [`(lambda (,x) ,e0)
-       (k `(lambda (,x) ,(anf-convert e0)))]
+      [(? number? n) (k n)]
+      [(? symbol? x) (k x)]
+      [`(lambda (,x) ,e0) (k `(lambda (,x) ,(anf-convert e0)))]
       [`(if ,e0 ,e1 ,e2)
        (normalize-ae e0 (lambda (ae)
                           (k `(if ,ae ,(anf-convert e1) ,(anf-convert e2)))))]
       [`(,es ...)
-       #;`(,e0 ,e1)
-       #;(normalize-ae e0 (lambda (ae0)
-                          (normalize-ae e1 (lambda (ae1)
-                                             (k `(,ae0 ,ae1))))))
        (normalize-aes es k)]))
   (normalize e (lambda (x) x)))

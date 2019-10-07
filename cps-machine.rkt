@@ -23,7 +23,6 @@
     [`((,ae0 ,aes ...) ,ρ)
      (match (aeval ae0 ρ)
        [`(clo (lambda (,xs ...) ,e-body) ,ρ-prime)
-
         (let ([ρ-new (foldl (lambda (x v ρ-acc) (hash-set ρ-acc x v)) ρ-prime xs (map (lambda (x) (aeval x ρ)) aes))])
           `(,e-body ,ρ-new))])]))
 

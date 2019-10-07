@@ -1,7 +1,7 @@
+;; CESK* machine for lambda calculus
 #lang racket
 
 ;; Predicates for CESK*
-
 (define (expr? e)
   (match e
     [(? symbol?) #t]
