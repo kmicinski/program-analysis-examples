@@ -12,3 +12,4 @@ extended with various primitives).
 - `church.rkt` - A church-encoder
 - `cps-machine` - Concrete interpreter for CPS lambda calculus
 - `cps-convert.rkt` - A CPS converter for a Scheme subset
+- `cesk.rkt` - A CESK machine for direct-style lambda calculus
