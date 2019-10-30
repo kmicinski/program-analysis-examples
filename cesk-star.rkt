@@ -1,15 +1,17 @@
-;; CESK* machine for lambda calculus
+;; Abstract CESK* machine for lambda calculus
 #lang racket
+
+(provide (all-defined-out))
 
 ;; Predicates for CESK*
 (define (expr? e)
   (match e
-    [(? symbol?) #t]
-    [`(,(? expr?) ,(? expr?)) #t]
+    [(? symbol? var) #t]
+    [`(,(? expr? e0) ,(? expr? e1)) #t]
     [`(lambda (,x) ,(? expr?)) #t]
     [else #f]))
 
-(define addr? number?)
+(define (addr? α) #t)
 
 (define (env? e)
   (and (andmap (lambda (key) (symbol? key)) (hash-keys e))
@@ -32,52 +34,59 @@
 
 (define (cesk*-state? state)
   (match state
-    [`(,(? expr?) ,(? env?) ,(? store?) ,(? addr?)) #t]
+    [`(,(? expr? c) ,(? env? ρ) ,(? store? σ) ,(? addr? ka)) #t]
     [else #f]))
-
-;;
-;; Store handling
-;;
-(define addr 0)
-
-;; Return a new address
-(define (fresh-addr)
-  (set! addr (add1 addr))
-  addr)
 
 ;; Create a CESK* state from e
 (define (inject e)
-  (let ([a0 (fresh-addr)])
-    `(,e ,(hash) ,(hash a0 'mt) ,a0)))
+  `(,e ,(hash) ,(hash '• (set 'mt)) •))
+
+;; σ ⊔ {a ↦ v} = σ' such that σ'(x) = σ(x) if x <> a
+;;                            σ'(x) = {v} ∪ σ(x) if x = a
+(define (store-extend σ a v)
+  (hash-set σ a (set-add (hash-ref σ a (set)) v)))
 
 ;; Examples
 (define id-id '((lambda (x) x) (lambda (x) x)))
 (define omega '((lambda (x) (x x)) (lambda (x) (x x))))
 
 ;; Step relation
+;; ς^ → set(ς')
 (define (step state)
   (match state
     ;; Variable lookup
-    [`(,(? symbol? x) ,env ,sto ,a) 
-     (match (hash-ref sto (hash-ref env x))
-       [`(clo (lambda (,x) ,body) ,rho-prime)
-        `((lambda (,x) ,body) ,rho-prime ,sto ,a)])]
+    [`(,(? symbol? x) ,ρ ,σ ,a)
+     (let ([all-closures+continuations (hash-ref σ (hash-ref ρ x))])
+       (foldl (lambda (closure-or-continuation output-states)
+                (match closure-or-continuation
+                  [`(clo (lambda (,x) ,e) ,ρ-prime)
+                   (set-add output-states `((lambda (,x) ,e) ,ρ-prime ,σ ,a))]
+                  [else
+                   output-states]))
+              (set)
+              (set->list all-closures+continuations)))]
     ;; Application
     [`((,e0 ,e1) ,ρ ,σ ,a)
-     (let* ([b (fresh-addr)]
-            [new-k `(ar ,e1 ,ρ ,a)]
-            [new-σ (hash-set σ b new-k)])
-       `(,e0 ,ρ ,new-σ ,b))]
+     (let ([b `(,e0 ,e1)])
+       (set `(,e0 ,ρ ,(store-extend σ b `(ar ,e1 ,ρ ,a)) ,b)))]
+
     ;; Lambdas...
     [`(,v ,ρ ,σ ,a)
-     (let ([k (hash-ref σ a)]
-           [b (fresh-addr)])
-       (match k
-         [`(ar ,e ,ρ1 ,c)
-          `(,e ,ρ1 ,(hash-set σ b `(fn ,v ,ρ ,c)) ,b)]
-         [`(fn (lambda (,x) ,e) ,ρ1 ,c)
-          `(,e ,(hash-set ρ1 x b) ,(hash-set σ b `(clo ,v ,ρ)) ,c)]
-         [else state]))]))
+     (let ([all-closures+continuations (hash-ref σ a)])
+       (foldl (lambda (closure-or-continuation output-states)
+                (match closure-or-continuation
+                   [`(ar ,e ,ρ-prime ,c)
+                    (let ([b e])
+                      (set-add output-states `(,e ,ρ-prime ,(store-extend σ b `(fn ,v ,ρ ,c)) ,b)))]
+                   [`(fn (lambda (,x) ,e) ,ρ-prime ,c)
+                    (let* ([α x]
+                           [ρ-prime-prime (hash-set ρ-prime x α)]
+                           [σ-prime (store-extend σ α `(clo ,v ,ρ))])
+                      (set-add output-states `(,e ,ρ-prime-prime ,σ-prime ,c)))]
+                   [else
+                    output-states]))
+              (set)
+              (set->list all-closures+continuations)))]))
 
 (define (iterate state)
   (displayln "Iterating state...")
@@ -96,4 +105,5 @@
     (iterate (inject input))
     (repl)))
 
-(repl)
+;(repl)
+
