@@ -2,23 +2,38 @@
 .decl sourceVarRef(exprId:number, varName:number)
 .decl sourceApplication(exprId:number, fnId:number, argId:number)
 
+// ((lambda (x^10) x^2)^3 (lambda (y^11) y^5)^6)^7
+// Assume that variable x is named 10 and y is named 11
+sourceLambda(6,7,8).
+sourceLambda(1,2,3).
+sourceVarRef(5,2).
+sourceVarRef(4,2).
+sourceVarRef(10,7).
+sourceVarRef(9,7).
+sourceApplication(8,9,10).
+sourceApplication(0,1,6).
+sourceApplication(3,4,5).
+// sourceLambda(3,10,2).
+// sourceLambda(6,11,5).
+// sourceVarRef(2,10).
+// sourceVarRef(5,11).
+// sourceApplication(7,3,6).
+
+// The flowsTo relation
 .decl valueFlowsTo(value:number, expr:number)
 .output valueFlowsTo
-
-// ((lambda (x^1) x^2)^3 (lambda (y^4) y^5)^6)^7
-// Assume that variable x is named 10 and y is named 11
-sourceLambda(3,10,2).
-sourceLambda(6,11,5).
-sourceVarRef(2,10).
-sourceVarRef(5,11).
-sourceApplication(7,3,6).
 
 valueFlowsTo(lambdaId,lambdaId) :- sourceLambda(lambdaId,_,_).
 
 valueFlowsTo(argVal,x) :- sourceApplication(_,fnId,argId),
-                          valueFlowsTo(_,fnId),
+                          valueFlowsTo(_,argId),
                           sourceLambda(fnId,x,_),
                           valueFlowsTo(argVal,argId).
 
+valueFlowsTo(v,exprId) :- sourceVarRef(exprId,var),
+                          valueFlowsTo(v,var).
 
-
+valueFlowsTo(v,exprId) :- sourceApplication(exprId,fnId,_),
+                          valueFlowsTo(lambdaId,fnId),
+                          sourceLambda(lambdaId,_,bodyId),
+                          valueFlowsTo(v,bodyId).
