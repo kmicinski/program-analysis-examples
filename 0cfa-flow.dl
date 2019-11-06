@@ -1,0 +1,24 @@
+.decl sourceLambda(exprId:number, varName:number, bodyId:number)
+.decl sourceVarRef(exprId:number, varName:number)
+.decl sourceApplication(exprId:number, fnId:number, argId:number)
+
+.decl valueFlowsTo(value:number, expr:number)
+.output valueFlowsTo
+
+// ((lambda (x^1) x^2)^3 (lambda (y^4) y^5)^6)^7
+// Assume that variable x is named 10 and y is named 11
+sourceLambda(3,10,2).
+sourceLambda(6,11,5).
+sourceVarRef(2,10).
+sourceVarRef(5,11).
+sourceApplication(7,3,6).
+
+valueFlowsTo(lambdaId,lambdaId) :- sourceLambda(lambdaId,_,_).
+
+valueFlowsTo(argVal,x) :- sourceApplication(_,fnId,argId),
+                          valueFlowsTo(_,fnId),
+                          sourceLambda(fnId,x,_),
+                          valueFlowsTo(argVal,argId).
+
+
+

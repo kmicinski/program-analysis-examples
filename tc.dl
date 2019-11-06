@@ -1,0 +1,10 @@
+.decl edge(x:number, y:number)
+.decl path(x:number, y:number)
+.output path
+
+edge(0,1).
+edge(1,2).
+
+path(x, y) :- edge(x, y).
+path(x, y) :- path(x, z), edge(z, y).
+
